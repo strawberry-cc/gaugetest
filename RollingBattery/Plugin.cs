@@ -1,12 +1,17 @@
-﻿using Dalamud.Game.Command;
+using Dalamud.Game.Command;
+using Dalamud.Interface.GameFonts;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using System.IO;
-using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using SamplePlugin.Windows;
+using FFXIVClientStructs.FFXIV.Client.Sound;
+using ImGuiNET;
+using RollingBattery.Windows;
+using System;
+using System.IO;
+using static FFXIVClientStructs.FFXIV.Client.UI.AddonActionCross;
 
-namespace SamplePlugin;
+namespace RollingBattery;
 
 public sealed class Plugin : IDalamudPlugin
 {
@@ -16,15 +21,16 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-
-    private const string CommandName = "/pmycommand";
+    [PluginService] internal static IJobGauges JobGauge { get; private set; } = null!;
+    private const string CommandName = "/rbc";
+    // private const string ResetRollingBattery = "/rrb";
 
     public Configuration Configuration { get; init; }
 
-    public readonly WindowSystem WindowSystem = new("SamplePlugin");
+    public readonly WindowSystem WindowSystem = new("RollingBattery");
     private ConfigWindow ConfigWindow { get; init; }
+    private OverlayElement OverlayElement { get; init; }
     private MainWindow MainWindow { get; init; }
-
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -34,13 +40,19 @@ public sealed class Plugin : IDalamudPlugin
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this, goatImagePath);
+        OverlayElement = new OverlayElement(PluginInterface, Configuration);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "A useful message to display in /xlhelp"
+            HelpMessage = "Open config window."
+        });
+
+        CommandManager.AddHandler("/rrb", new CommandInfo(OnResetCommand)
+        {
+            HelpMessage = "Reset battery history display."
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
@@ -54,7 +66,7 @@ public sealed class Plugin : IDalamudPlugin
 
         // Add a simple message to the log with level set to information
         // Use /xllog to open the log window in-game
-        // Example Output: 00:57:54.959 | INF | [SamplePlugin] ===A cool log message from Sample Plugin===
+        // Example Output: 00:57:54.959 | INF | [RollingBattery] ===A cool log message from Sample Plugin===
         Log.Information($"===A cool log message from {PluginInterface.Manifest.Name}===");
     }
 
@@ -66,16 +78,25 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
 
         CommandManager.RemoveHandler(CommandName);
+        CommandManager.RemoveHandler("/rrb");
     }
 
     private void OnCommand(string command, string args)
     {
         // in response to the slash command, just toggle the display status of our main ui
-        ToggleMainUI();
+        ToggleConfigUI();
+    }
+
+    private void OnResetCommand(string command, string args)
+    {
+        OverlayElement.ResetBatteryHistory();
+        Log.Information("Battery history reset.");
     }
 
     private void DrawUI() => WindowSystem.Draw();
 
     public void ToggleConfigUI() => ConfigWindow.Toggle();
     public void ToggleMainUI() => MainWindow.Toggle();
+
 }
+

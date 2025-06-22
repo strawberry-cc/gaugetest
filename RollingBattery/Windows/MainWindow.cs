@@ -1,12 +1,14 @@
-﻿using System;
+using System;
 using System.Numerics;
+using Dalamud.Game.ClientState.JobGauge.Types;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
+using System.Media;
 
-namespace SamplePlugin.Windows;
+namespace RollingBattery.Windows;
 
 public class MainWindow : Window, IDisposable
 {
@@ -85,6 +87,15 @@ public class MainWindow : Window, IDisposable
                     ImGui.TextUnformatted("Our current job is currently not valid.");
                     return;
                 }
+
+                // Access the current job gauge values for the player job
+                var gauge = Plugin.JobGauge;
+                if (gauge == null) return;
+
+                var jobGauge = gauge.Get<MCHGauge>();
+                if (jobGauge == null) return;
+
+                ImGui.Text($"Battery: {jobGauge.Battery}");
 
                 // ExtractText() should be the preferred method to read Lumina SeStrings,
                 // as ToString does not provide the actual text values, instead gives an encoded macro string.

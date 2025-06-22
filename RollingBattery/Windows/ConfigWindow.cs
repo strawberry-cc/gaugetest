@@ -1,23 +1,20 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
-namespace SamplePlugin.Windows;
+namespace RollingBattery.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
     private Configuration Configuration;
 
-    // We give this window a constant ID using ###
-    // This allows for labels being dynamic, like "{FPS Counter}fps###XYZ counter window",
-    // and the window ID will always be "###XYZ counter window" for ImGui
-    public ConfigWindow(Plugin plugin) : base("A Wonderful Configuration Window###With a constant ID")
+    public ConfigWindow(Plugin plugin) : base("RollingBattery Config###With a constant ID")
     {
         Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
                 ImGuiWindowFlags.NoScrollWithMouse;
 
-        Size = new Vector2(232, 90);
+        Size = new Vector2(500, 200);
         SizeCondition = ImGuiCond.Always;
 
         Configuration = plugin.Configuration;
@@ -27,7 +24,6 @@ public class ConfigWindow : Window, IDisposable
 
     public override void PreDraw()
     {
-        // Flags must be added or removed before Draw() is being called, or they won't apply
         if (Configuration.IsConfigWindowMovable)
         {
             Flags &= ~ImGuiWindowFlags.NoMove;
@@ -40,12 +36,11 @@ public class ConfigWindow : Window, IDisposable
 
     public override void Draw()
     {
-        // can't ref a property, so use a local copy
+        /* 
         var configValue = Configuration.SomePropertyToBeSavedAndWithADefault;
         if (ImGui.Checkbox("Random Config Bool", ref configValue))
         {
             Configuration.SomePropertyToBeSavedAndWithADefault = configValue;
-            // can save immediately on change, if you don't want to provide a "Save and Close" button
             Configuration.Save();
         }
 
@@ -55,5 +50,36 @@ public class ConfigWindow : Window, IDisposable
             Configuration.IsConfigWindowMovable = movable;
             Configuration.Save();
         }
+        */
+
+        // === Sliders for overlay text ===
+        float scale = Configuration.TextScale;
+        if (ImGui.SliderFloat("Text Scale", ref scale, 0.5f, 3.0f, "%.1f"))
+        {
+            Configuration.TextScale = scale;
+            Configuration.Save();
+        }
+
+        float xpos = Configuration.TextPosX;
+        if (ImGui.SliderFloat("Text X", ref xpos, 0f, 2560f, "%.0f"))
+        {
+            Configuration.TextPosX = xpos;
+            Configuration.Save();
+        }
+
+        float ypos = Configuration.TextPosY;
+        if (ImGui.SliderFloat("Text Y", ref ypos, 0f, 2560f, "%.0f"))
+        {
+            Configuration.TextPosY = ypos;
+            Configuration.Save();
+        }
+
+        var textColor = Configuration.TextColor;
+        if (ImGui.ColorEdit4("Text Color", ref textColor))
+        {
+            Configuration.TextColor = textColor;
+            Configuration.Save();
+        }
+
     }
 }
